@@ -1,0 +1,25 @@
+services:
+  telebot:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env.production
+    depends_on:
+      triton:
+        condition: service_healthy
+
+  triton:
+    image: nvcr.io/nvidia/tritonserver:23.10-py3
+    command: tritonserver --model-repo /models --http-port 8000 --grpc-port 8001
+    volumes:
+      - ./models:/models
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/v2/health/live')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

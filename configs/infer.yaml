@@ -1,0 +1,7 @@
+# Hydra defaults for inference
+defaults:
+  - data
+  - model
+  - logging
+  - inference
+  - _self_

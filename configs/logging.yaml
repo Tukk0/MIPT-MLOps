@@ -1,0 +1,6 @@
+# Logging configuration
+logging:
+  mlflow_uri: "http://127.0.0.1:8080"
+  mlflow_experiment_name: "digit-recognition"
+  wandb_enabled: false
+  wandb_project: "digit-recognition"

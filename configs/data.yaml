@@ -1,0 +1,9 @@
+# Data configuration
+data:
+  dataset: mnist
+  batch_size: 128
+  num_workers: 4
+  train_val_test_split: [0.6, 0.2, 0.2]
+  image_size: [28, 28]
+  mean: 0.1307
+  std: 0.3081

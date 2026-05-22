@@ -1,0 +1,24 @@
+# Training configuration
+training:
+  optimizer:
+    name: AdamW
+    lr: 0.001
+    weight_decay: 0.01
+  scheduler:
+    name: CosineAnnealingLR
+    T_max: 30
+    eta_min: 1.0e-6
+  max_epochs: 30
+  gradient_clip_val: 1.0
+  devices: 1
+  precision: 16-mixed
+  callbacks:
+    - model_checkpoint
+    - early_stopping
+  early_stopping:
+    monitor: val_loss
+    patience: 5
+  model_checkpoint:
+    monitor: val_loss
+    save_top_k: 1
+    mode: min

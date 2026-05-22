@@ -1,0 +1,7 @@
+defaults:
+  - data
+  - model
+  - training
+  - logging
+  - inference
+  - _self_

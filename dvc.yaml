@@ -1,0 +1,8 @@
+stages:
+  download_data:
+    cmd: python src/download_data.py
+    deps:
+      - src/download_data.py
+    outs:
+      - data/mnist:
+          cache: false

@@ -1,0 +1,7 @@
+# Inference configuration
+inference:
+  model_path: null
+  image_size: 28
+  device: cpu
+  onnx_path: model.onnx
+  trt_engine_path: model.engine
