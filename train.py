@@ -13,9 +13,8 @@ import warnings
 from pathlib import Path
 
 import git
-import hydra
-from fire import Fire
-from omegaconf import DictConfig
+from hydra import compose, initialize
+from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import MLFlowLogger, TensorBoardLogger
@@ -36,30 +35,43 @@ def _get_git_commit() -> str:
         return "unknown"
 
 
+def _load_config(**overrides) -> DictConfig:
+    """Load Hydra config with optional CLI overrides."""
+    with initialize(version_base=None, config_path="configs", job_name="train"):
+        cfg = compose(config_name="train", overrides=overrides)
+    return cfg
+
+
 def train(cfg: DictConfig) -> None:
-    """Training function for fire CLI."""
+    """Training function with composed Hydra config."""
     git_sha = _get_git_commit()
     print(f"Training started — git commit: {git_sha}")
 
     log_dir = str(Path.cwd() / "logs" / f"run_{int(time.time())}")
-    mlflow_logger = MLFlowLogger(
-        experiment_name="digits",
-        tracking_uri=cfg.logging.mlflow_uri,
-    )
-    mlflow_logger.log_params(
-        {
-            "optimizer_name": cfg.training.optimizer.name,
-            "optimizer_lr": cfg.training.optimizer.lr,
-            "optimizer_weight_decay": cfg.training.optimizer.weight_decay,
-            "scheduler_name": cfg.training.scheduler.name,
-            "max_epochs": cfg.training.max_epochs,
-            "gradient_clip_val": cfg.training.gradient_clip_val,
-            "devices": str(cfg.training.devices),
-            "batch_size": cfg.data.batch_size,
-            "num_workers": cfg.data.num_workers,
-            "git_commit": git_sha,
-        }
-    )
+
+    params: dict[str, str | int | float] = {
+        "optimizer_name": str(cfg.training.optimizer.name),
+        "optimizer_lr": cfg.training.optimizer.lr,
+        "optimizer_weight_decay": cfg.training.optimizer.weight_decay,
+        "scheduler_name": str(cfg.training.scheduler.name),
+        "max_epochs": cfg.training.max_epochs,
+        "gradient_clip_val": cfg.training.gradient_clip_val,
+        "devices": str(cfg.training.devices),
+        "batch_size": cfg.data.batch_size,
+        "num_workers": cfg.data.num_workers,
+        "git_commit": git_sha,
+    }
+
+    mlflow_logger: MLFlowLogger | None = None
+    try:
+        mlflow_logger = MLFlowLogger(
+            experiment_name=cfg.logging.mlflow_experiment_name,
+            save_dir="./mlruns",
+        )
+        mlflow_logger.experiment.log_params(params)
+    except Exception:
+        mlflow_logger = None
+        print("MLFlow not available — using TensorBoard only")
 
     tb_logger = TensorBoardLogger(log_dir, name="digits")
 
@@ -70,16 +82,19 @@ def train(cfg: DictConfig) -> None:
         verbose=True,
     )
     checkpoint_cb = ModelCheckpoint(
+        dirpath="checkpoints",
         monitor="val_loss",
         mode="min",
         save_top_k=1,
         filename="best-{epoch}-{val_loss:.2f}",
     )
 
+    logger_list = [tb_logger] if mlflow_logger is None else [mlflow_logger, tb_logger]
+
     trainer = Trainer(
         max_epochs=cfg.training.max_epochs,
         devices=cfg.training.devices,
-        logger=[mlflow_logger, tb_logger],
+        logger=logger_list,
         callbacks=[early_stop, checkpoint_cb],
         gradient_clip_val=cfg.training.gradient_clip_val,
         precision=cfg.training.precision,
@@ -116,10 +131,25 @@ def train(cfg: DictConfig) -> None:
     print(f"Training complete. Logs saved to: {log_dir}")
 
 
-@hydra.main(version_base=None, config_path="configs", config_name="train")
-def main(cfg: DictConfig) -> None:
+def train_cli(
+    max_epochs: int = 5,
+    lr: float = 0.001,
+    weight_decay: float | None = None,
+) -> None:
+    """Command-line entry point via Fire + Hydra compose."""
+    with initialize(version_base=None, config_path="configs", job_name="train"):
+        cfg = compose(config_name="train")
+    extra = OmegaConf.create({
+        "training": {
+            "max_epochs": max_epochs,
+            "optimizer": {"lr": lr},
+        }
+    })
+    if weight_decay is not None:
+        extra.training.optimizer.weight_decay = weight_decay
+    cfg = OmegaConf.merge(cfg, extra)
     train(cfg)
 
 
 if __name__ == "__main__":
-    Fire(main)
+    train_cli()

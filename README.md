@@ -72,43 +72,105 @@ Telegram-бот получает изображение, передаёт его
 
 ## 8. Setup
 
+Самый быстрый способ запуска — через **Docker**:
+
 ```bash
-git clone <repo-url> && cd digit-recognition
+# Построить образ
+docker build -t digit-recognition .
 
-python -m venv .venv
-source .venv/bin/activate
+# Тренировка (5 эпох):
+docker run --rm digit-recognition train 5
 
-pip install -r requirements.txt
-# или
-# poetry install
-# poetry shell
+# Тесты:
+docker run --rm digit-recognition test
 
-pre-commit install
-pre-commit run -a
+# Лайнинг:
+docker run --rm digit-recognition lint
+
+# Полный пайплайн (train -> onnx -> convert):
+docker run --rm digit-recognition train-onnx-inference
 ```
 
-## 9. Training
+Или через **run.sh** (установите зависимости локально):
+
+```bash
+pip install poetry && poetry install
+
+./run.sh train        # 5 эпох
+./run.sh train 30     # 30 эпох
+./run.sh onnx         # export to ONNX
+./run.sh test         # pytest
+./run.sh lint         # ruff check
+./run.sh docker       # docker build
+./run.sh docker-all   # train -> onnx через Docker
+```
+
+Через **Hydra** (для кастомных конфигов):
 
 ```bash
 source .venv/bin/activate
 python train.py
-```
-
-Перевычисление с кастомными параметрами:
-```bash
 python train.py training.max_epochs=50 training.optimizer.lr=0.0005
 ```
 
-Логи пишутся в:
+### Локальная установка
+
+```bash
+pip install poetry
+poetry install
+pre-commit install
+pre-commit run -a
+```
+
+## 9. Тренировка
+
+### Через Docker (рекомендуется)
+```bash
+docker run --rm digit-recognition train 10     # 10 эпох
+docker run --rm digit-recognition test          # тесты
+docker run --rm digit-recognition lint          # лайнинг
+docker run --rm digit-recognition train-onnx-inference  # полный пайплайн
+```
+
+### Через run.sh
+```bash
+./run.sh train        # 5 эпох (по умолчанию)
+./run.sh train 30     # 30 эпох
+./run.sh test         # pytest
+./run.sh lint         # ruff check
+```
+
+### Локально (через Hydra)
+```bash
+python train.py
+python train.py training.max_epochs=50 training.optimizer.lr=0.0005
+```
+
+### Логи
 - **MLFlow** на `http://127.0.0.1:8080` (метрики, параметры, git commit).
 - **TensorBoard** в `logs/run_<timestamp>/`.
 - **Checkpoints модели** сохраняются в `checkpoints/`.
 
-## 10. Inference
+## 10. Инференс
 
+### Через Docker
 ```bash
-python infer.py predict --model-path checkpoints/best.pt --image test.png
+docker run --rm digit-recognition onnx                    # train -> onnx
+docker run --rm digit-recognition inference checkpoints/best.pt test.png  # инференс
+```
+
+### Через run.sh
+```bash
+./run.sh onnx     # export last checkpoint to ONNX + verify
+./run.sh inference    # show inference ready (then use infer.py directly)
+```
+
+### Локально
+```bash
+python infer.py predict checkpoints/best.pt test.png
 python infer.py onnx --model checkpoints/best.pt --onnx model.onnx
+python convert.py export_onnx checkpoints/best.pt model.onnx
+python convert.py test_onnx_consistency checkpoints/best.pt model.onnx
 tritonserver --model-repo models/digit_recognition --http-port 8000 --grpc-port 8001
 ```
 
@@ -134,8 +196,15 @@ python train.py training.max_epochs=50 training.optimizer.lr=0.0005
 
 ## 12. Production preparation
 
+### Через Docker
 ```bash
-python infer.py onnx --model checkpoints/best.pt --onnx model.onnx
+docker run --rm digit-recognition onnx    # train -> onnx -> verify
+```
+
+### Локально
+```bash
+python convert.py export_onnx checkpoints/best.pt model.onnx
+python convert.py test_onnx_consistency checkpoints/best.pt model.onnx
 
 # TensorRT (требуется NVIDIA GPU + tensorrt installed)
 ./deploy_tensorrt.sh model.onnx model.trt 1
@@ -143,24 +212,68 @@ python infer.py onnx --model checkpoints/best.pt --onnx model.onnx
 
 ## 13. Telegram-бот
 
+### Через Docker
+```bash
+docker compose up --build
+```
+Настроено автоматически: бот запустится только после `triton` healthcheck.
+
+### Локально
 ```bash
 cp .env.local .env.local.bak
 # В .env.local.bak: export TELEGRAM_BOT_TOKEN=<your_token>
-python main.py --triton-endpoint http://localhost:8000/v2/models/digit_recognition/infer
+python main.py
 ```
+
+> **Примечание**: Telegram-бот не имеет CLI-аргументов. Указать endpoint Triton-сервера можно через переменную окружения:
+> ```bash
+> TRITON_ENDPOINT="http://localhost:8000/v2/models/digit_recognition/infer" python main.py
+> ```
 
 ## 14. Docker
 
+### Быстрый старт
 ```bash
-docker compose up --build
+docker build -t digit-recognition .
 
-# Только Triton
-docker run -d --name triton \
-  -v $(pwd)/models:/models \
-  -p 8000:8000 -p 8001:8001 \
-  nvcr.io/nvidia/tritonserver:23.10-py3 \
-  --model-repo /models --http-port 8000 --grpc-port 8001
+# Полный пайплайн (train + onnx + convert)
+docker run --rm digit-recognition train-onnx-inference
+
+# Тренировка (10 эпох)
+docker run --rm digit-recognition train 10
+
+# Тесты
+docker run --rm digit-recognition test
+
+# Лайнинг
+docker run --rm digit-recognition lint
+
+# Только Triton + Telegram bot
+docker compose up --build -d
 ```
+
+### Dockerfile
+```dockerfile
+FROM python:3.11-slim
+# ... все зависимости для проекта
+```
+
+### Команды Docker
+| Команда | Результат |
+|---------|-----------|
+| `docker run digit-recognition train 5` | Training 5 epochs |
+| `docker run digit-recognition test` | pytest |
+| `docker run digit-recognition lint` | ruff check |
+| `docker run digit-recognition onnx` | export to ONNX + verify |
+| `docker run digit-recognition train-onnx-inference` | Full pipeline |
+
+### Docker Compose (production)
+```bash
+docker compose up --build --detach
+```
+Запускает:
+1. **Triton Inference Server** — с healthcheck (port 8000/8001)
+2. **Telegram Bot** — запускается только после healthy Triton
 
 ## 15. Структура проекта
 
