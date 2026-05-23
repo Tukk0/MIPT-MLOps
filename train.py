@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 
 import git
+from hydra import compose, initialize
 from omegaconf import DictConfig
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -25,6 +26,21 @@ def _get_git_commit() -> str:
         return repo.head.object.hexsha
     except git.InvalidGitRepositoryError:
         return "unknown"
+
+
+def _load_config(overrides: list[str]) -> DictConfig:
+    """Load Hydra config with CLI overrides."""
+    with initialize(version_base=None, config_path="configs", job_name="train"):
+        return compose(config_name="train", overrides=overrides)
+
+
+def _parse_cli_overrides() -> list[str]:
+    """Extract Hydra-style overrides from sys.argv."""
+    config_overrides: list[str] = []
+    for arg in sys.argv[1:]:
+        if "=" in arg and not arg.startswith("-"):
+            config_overrides.append(arg)
+    return config_overrides
 
 
 def train(cfg: DictConfig) -> None:
@@ -122,23 +138,12 @@ def train(cfg: DictConfig) -> None:
     print(f"Metrics logged to TensorBoard: {log_dir}")
 
 
-def main(cfg: DictConfig) -> None:
-    """Entrypoint — Hydra composes the config, validates it, and calls train()."""
+def main() -> None:
+    """Entry point — loads config from CLI args and starts training."""
+    config_overrides = _parse_cli_overrides()
+    cfg = _load_config(config_overrides) if config_overrides else _load_config([])
     train(cfg)
 
 
 if __name__ == "__main__":
-    from hydra import compose, initialize
-
-    def _load_config(overrides: list[str]) -> DictConfig:
-        """Load Hydra config with CLI overrides."""
-        with initialize(version_base=None, config_path="configs", job_name="train"):
-            return compose(config_name="train", overrides=overrides)
-
-    config_overrides: list[str] = []
-    for arg in sys.argv[1:]:
-        if "=" in arg and not arg.startswith("-"):
-            config_overrides.append(arg)
-
-    cfg = _load_config(config_overrides) if config_overrides else _load_config([])
-    train(cfg)
+    main()
