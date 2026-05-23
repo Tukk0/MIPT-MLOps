@@ -9,7 +9,6 @@ Usage:
 from __future__ import annotations
 
 import sys
-import time
 from pathlib import Path
 
 import git
@@ -48,7 +47,7 @@ def train(cfg: DictConfig) -> None:
     git_sha = _get_git_commit()
     print(f"Training started — git commit: {git_sha}")
 
-    log_dir = str(Path.cwd() / "logs" / f"run_{int(time.time())}")
+    log_dir = str(Path.cwd() / "logs")
 
     params: dict[str, str | int | float] = {
         "optimizer_name": str(cfg.training.optimizer.name),
@@ -79,7 +78,7 @@ def train(cfg: DictConfig) -> None:
     except Exception as error:
         print(f"MLFlow logging failed ({error}) — using TensorBoard-only")
 
-    tb_logger = TensorBoardLogger(log_dir, name="digits")
+    tb_logger = TensorBoardLogger(save_dir=log_dir, name="", version=0)
 
     early_stop = EarlyStopping(
         monitor="val_loss",
@@ -134,8 +133,8 @@ def train(cfg: DictConfig) -> None:
     trainer.fit(model, datamodule=data_module)
     trainer.test(model, datamodule=data_module)
 
-    print(f"Training complete. Logs saved to: {log_dir}")
-    print(f"Metrics logged to TensorBoard: {log_dir}")
+    print(f"Training complete. Logs saved to: {tb_logger.log_dir}")
+    print(f"Metrics logged to TensorBoard: {tb_logger.log_dir}")
 
 
 def main() -> None:
