@@ -2,8 +2,6 @@
 Lightning data module for MNIST digit classification.
 """
 
-from __future__ import annotations
-
 import numpy as np
 import torchvision.transforms as transforms
 import torchvision.transforms.v2 as transforms_v2

@@ -5,8 +5,6 @@ Usage::
     python -m digit_recognition.download_data
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from torchvision.datasets import MNIST

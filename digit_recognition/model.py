@@ -3,8 +3,6 @@ PyTorch Lightning module for MNIST digit classification.
 Supports LeNet5 and ResNet18 (fine-tuning via config).
 """
 
-from __future__ import annotations
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

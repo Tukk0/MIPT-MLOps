@@ -4,8 +4,6 @@ Minimal deps: torch, PIL, torchvision, numpy, onnxruntime.
 No dvc, hydra, or lightning imports.
 """
 
-from __future__ import annotations
-
 import numpy as np
 import torch
 from PIL import Image

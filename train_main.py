@@ -1,7 +1,5 @@
 """Entrypoint for training - placed at project root for Hydra compatibility."""
 
-from __future__ import annotations
-
 import subprocess
 import sys
 from pathlib import Path

@@ -3,8 +3,6 @@
 run: pytest tests/test_inference.py -v
 """
 
-from __future__ import annotations
-
 import tempfile
 from pathlib import Path
 

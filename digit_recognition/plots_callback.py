@@ -1,7 +1,5 @@
 """Lightning callback to generate training plots and confusion matrix."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import matplotlib
