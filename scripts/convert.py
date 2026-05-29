@@ -32,17 +32,10 @@ def _ensure_data() -> None:
 
 def export_onnx(model_path: str, onnx_path: str, input_shape_str: str = "1,1,28,28") -> None:
     """Load PyTorch checkpoint -> export to ONNX -> simplify."""
-    from digit_recognition.inference import _infer_model_params
+    from digit_recognition.inference import _infer_model_params, _load_checkpoint_state
     from digit_recognition.model import LeNet5, LeNet5WithResNet18
 
-    checkpoint = torch.load(model_path, map_location="cpu", weights_only=True)
-    sd = checkpoint.get("state_dict", checkpoint)
-
-    # Remove "model." prefix from state_dict keys if present
-    if any(k.startswith("model.") for k in sd) and not any(k.startswith("resnet.") for k in sd):
-        sd = {k.replace("model.", ""): v for k, v in sd.items()}
-
-    has_resnet = any("resnet" in k for k in sd)
+    sd, has_resnet = _load_checkpoint_state(model_path, device="cpu")
 
     if has_resnet:
         model = LeNet5WithResNet18(num_classes=10)
@@ -86,16 +79,9 @@ def test_onnx_consistency(
 ) -> None:
     """Compare PyTorch vs ONNX predictions on a random MNIST sample."""
     _ensure_data()
-    from digit_recognition.inference import preprocess_image
+    from digit_recognition.inference import _load_checkpoint_state, preprocess_image
 
-    checkpoint = torch.load(model_path, map_location="cpu", weights_only=True)
-    sd = checkpoint.get("state_dict", checkpoint)
-
-    # Remove "model." prefix from state_dict keys if present
-    if any(k.startswith("model.") for k in sd) and not any(k.startswith("resnet.") for k in sd):
-        sd = {k.replace("model.", ""): v for k, v in sd.items()}
-
-    has_resnet = any("resnet" in k for k in sd)
+    sd, has_resnet = _load_checkpoint_state(model_path, device="cpu")
     if has_resnet:
         from digit_recognition.model import LeNet5WithResNet18
 

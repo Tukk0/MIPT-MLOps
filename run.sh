@@ -16,19 +16,17 @@ case "${1:-run}" in
         echo "Step 1/3: Training MNIST model (5 epochs)..."
         python train_main.py training.max_epochs=5
         echo "Step 2/3: Exporting to ONNX..."
-        LATEST=$(ls -t checkpoints/*.ckpt 2>/dev/null | head -1)
-        if [ -z "$LATEST" ]; then
+        if [ ! -f checkpoints/best.ckpt ]; then
             echo "No checkpoints found. Run ./run.sh train first or use docker."
             exit 1
         fi
-        cp -- "$LATEST" checkpoints/best.pt
-        python scripts/convert.py export_onnx checkpoints/best.pt model.onnx
-        python scripts/convert.py test_onnx_consistency checkpoints/best.pt model.onnx
+        python scripts/convert.py export_onnx checkpoints/best.ckpt model.onnx
+        python scripts/convert.py test_onnx_consistency checkpoints/best.ckpt model.onnx
         echo "=== Pipeline complete ==="
         echo ""
         echo "Next steps:"
-        echo "  python infer.py predict checkpoints/best.pt your_image.png"
-        echo "  python infer.py onnx --model checkpoints/best.pt --onnx model.onnx"
+        echo "  python infer.py predict checkpoints/best.ckpt your_image.png"
+        echo "  python infer.py onnx --model checkpoints/best.ckpt --onnx_path model.onnx"
         ;;
     train)
         EPOCHS="${2:-5}"
@@ -37,17 +35,15 @@ case "${1:-run}" in
         ;;
     onnx)
         echo "Exporting latest checkpoint to ONNX..."
-        if [ ! -d "checkpoints" ]; then
+        if [ ! -f "checkpoints/best.ckpt" ]; then
             echo "No checkpoints found. Run ./run.sh train first."
             exit 1
         fi
-        LATEST=$(ls -t checkpoints/*.ckpt 2>/dev/null | head -1)
-        cp -- "$LATEST" checkpoints/best.pt
-        python scripts/convert.py export_onnx "checkpoints/best.pt" "model.onnx"
-        python scripts/convert.py test_onnx_consistency "checkpoints/best.pt" "model.onnx"
+        python scripts/convert.py export_onnx "checkpoints/best.ckpt" "model.onnx"
+        python scripts/convert.py test_onnx_consistency "checkpoints/best.ckpt" "model.onnx"
         ;;
     inference)
-        MODEL_PATH="${2:-checkpoints/best.pt}"
+        MODEL_PATH="${2:-checkpoints/best.ckpt}"
         if [ ! -f "$MODEL_PATH" ]; then
             echo "Model not found at $MODEL_PATH. Run ./run.sh train first."
             exit 1

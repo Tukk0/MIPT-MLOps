@@ -64,7 +64,7 @@ def train(cfg: DictConfig) -> None:
     """Training loop using PyTorch Lightning with full logging."""
     _ensure_data()
     git_sha = _get_git_commit()
-    print(f"Training started — git commit: {git_sha}")
+    print(f"Training started -- git commit: {git_sha}")
 
     log_dir = str(_ROOT / "logs")
 
@@ -93,9 +93,8 @@ def train(cfg: DictConfig) -> None:
         with mlflow.start_run(run_id=mlflow_logger.run_id):
             for key, value in params.items():
                 mlflow.log_param(key, value)
-        del mlflow
     except Exception as error:
-        print(f"MLFlow logging failed ({error}) — using TensorBoard-only")
+        print(f"MLFlow logging failed ({error}) -- using TensorBoard-only")
 
     tb_logger = TensorBoardLogger(save_dir=log_dir, name="", version=0)
 
@@ -110,7 +109,7 @@ def train(cfg: DictConfig) -> None:
         monitor="val_loss",
         mode="min",
         save_top_k=1,
-        filename="best-{epoch}-{val_loss:.2f}",
+        filename="best",
     )
 
     logger_list = [tb_logger] if mlflow_logger is None else [mlflow_logger, tb_logger]
@@ -158,7 +157,7 @@ def train(cfg: DictConfig) -> None:
 
 
 def main() -> None:
-    """Entry point — loads config from CLI args and starts training."""
+    """Entry point -- loads config from CLI args and starts training."""
     config_overrides = _parse_cli_overrides()
     cfg = _load_config(config_overrides) if config_overrides else _load_config([])
     train(cfg)

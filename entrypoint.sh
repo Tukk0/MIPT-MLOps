@@ -18,14 +18,14 @@ case "$COMMAND" in
         ruff check .
         ;;
     onnx)
-        MODEL_PATH="${2:-checkpoints/best.pt}"
+        MODEL_PATH="${2:-checkpoints/best.ckpt}"
         ONNX_PATH="${3:-model.onnx}"
         echo "Converting $MODEL_PATH to ONNX ($ONNX_PATH)..."
         python scripts/convert.py export_onnx "$MODEL_PATH" "$ONNX_PATH"
         python scripts/convert.py test_onnx_consistency "$MODEL_PATH" "$ONNX_PATH"
         ;;
     inference)
-        MODEL_PATH="${2:-checkpoints/best.pt}"
+        MODEL_PATH="${2:-checkpoints/best.ckpt}"
         IMAGE_PATH="$3"
         echo "Running inference: $MODEL_PATH -> $IMAGE_PATH"
         python infer.py predict "$MODEL_PATH" "$IMAGE_PATH"
@@ -38,8 +38,8 @@ case "$COMMAND" in
         # Full pipeline: train -> convert -> test
         echo "=== Full MLOps pipeline ==="
         python train_main.py training.max_epochs=5
-        python scripts/convert.py export_onnx checkpoints/best.pt model.onnx
-        python scripts/convert.py test_onnx_consistency checkpoints/best.pt model.onnx
+        python scripts/convert.py export_onnx checkpoints/best.ckpt model.onnx
+        python scripts/convert.py test_onnx_consistency checkpoints/best.ckpt model.onnx
         echo "=== Pipeline complete ==="
         ;;
     *)

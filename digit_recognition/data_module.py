@@ -37,8 +37,8 @@ class MNISTDataModule(LightningDataModule):
         self.train_transform = transforms.Compose(
             [
                 transforms_v2.RandomAffine(degrees=10, translate=(0.1, 0.1)),
-                transforms_v2.RandomErasing(p=0.1),
                 transforms.ToTensor(),
+                transforms_v2.RandomErasing(p=0.1),
                 transforms.Normalize((mean,), (std,)),
             ]
         )

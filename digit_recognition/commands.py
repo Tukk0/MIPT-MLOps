@@ -10,7 +10,6 @@ Usage::
 
 from __future__ import annotations
 
-import glob
 import subprocess
 import sys
 from pathlib import Path
@@ -42,7 +41,7 @@ def onnx(checkpoint: str | None = None) -> None:
         checkpoint: Path to checkpoint file. Defaults to latest .ckpt in checkpoints/.
     """
     if checkpoint is None:
-        ckpts = sorted(glob.glob(str(_ROOT / "checkpoints" / "*.ckpt")))
+        ckpts = sorted(_ROOT.glob("checkpoints/*.ckpt"))
         if not ckpts:
             print("No checkpoints found. Run 'train' first (via docker or train command).")
             return
@@ -84,7 +83,7 @@ def lint() -> None:
 
 
 def cli(*args, **kwargs) -> None:
-    """Main CLI — redirects to appropriate sub-command."""
+    """Main CLI -- redirects to appropriate sub-command."""
     fire.Fire(
         {
             "train": train,

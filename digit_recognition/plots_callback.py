@@ -90,7 +90,7 @@ class PlotsCallback(Callback):
 
         with torch.no_grad():
             for images, labels in loader:
-                logits = pl_module.model(images)
+                logits = pl_module(images)["logits"]
                 preds = torch.argmax(logits, dim=1)
                 all_preds.extend(preds.tolist())
                 all_targets.extend(labels.tolist())

@@ -34,15 +34,19 @@ def _infer_model_params(state_dict):
     return conv1_out, conv2_out, fc1_features, fc2_features, batch_norm_flag
 
 
-def load_model(model_path, device="cpu"):
-    from digit_recognition.model import LeNet5, LeNet5WithResNet18
-
+def _load_checkpoint_state(model_path: str, device: str = "cpu") -> tuple[dict, bool]:
     checkpoint = torch.load(model_path, map_location=device, weights_only=True)
     sd = checkpoint.get("state_dict", checkpoint)
     has_resnet = any("resnet" in k for k in sd)
-    # Remove "model." prefix from state_dict keys if present
     if any(k.startswith("model.") for k in sd) and not any(k.startswith("resnet.") for k in sd):
         sd = {k.replace("model.", ""): v for k, v in sd.items()}
+    return sd, has_resnet
+
+
+def load_model(model_path, device="cpu"):
+    from digit_recognition.model import LeNet5, LeNet5WithResNet18
+
+    sd, has_resnet = _load_checkpoint_state(model_path, device=device)
 
     if has_resnet:
         model = LeNet5WithResNet18(num_classes=10).to(device)

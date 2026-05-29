@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F  # noqa: N812
+import torch.nn.functional as F
 import torchmetrics
 import torchvision.models as models
 from pytorch_lightning import LightningModule

@@ -1,12 +1,10 @@
-"""Public API for inference — CLI entry point.
+"""Public API for inference -- CLI entry point.
 
 Usage:
-    python infer.py predict --model_path checkpoints/best.pt --image_path test.png
-    python infer.py onnx --model checkpoints/best.pt --onnx model.onnx
-    python infer.py trt --onnx model.onnx --trt model.trt --batch 1
+    python infer.py predict --model_path checkpoints/best.ckpt --image_path test.png
+    python infer.py onnx --model checkpoints/best.ckpt --onnx_path model.onnx
+    python infer.py trt --onnx_path model.onnx --trt model.trt --batch 1
 """
-
-from __future__ import annotations
 
 import os
 import subprocess
@@ -50,24 +48,24 @@ def predict(
 
 def onnx(
     model: str,
-    onnx: str,
+    onnx_path: str,
 ) -> None:
     """Export model to ONNX format and verify."""
     _ensure_data()
     from scripts.convert import export_onnx, test_onnx_consistency
 
-    export_onnx(model, onnx)
-    test_onnx_consistency(model, onnx)
+    export_onnx(model, onnx_path)
+    test_onnx_consistency(model, onnx_path)
 
 
 def trt(
-    onnx: str = "model.onnx",
+    onnx_path: str = "model.onnx",
     trt: str = "model.trt",
     batch: int = 1,
 ) -> None:
     """Convert ONNX to TensorRT engine."""
     env = os.environ.copy()
-    env["ONNX_PATH"] = onnx
+    env["ONNX_PATH"] = onnx_path
     env["TRT_ENGINE"] = trt
     env["BATCH_SIZE"] = str(batch)
     script_path = str(Path(__file__).parent / "deploy_tensorrt.sh")
@@ -75,5 +73,9 @@ def trt(
     sys.exit(result.returncode)
 
 
-if __name__ == "__main__":
+def cli() -> None:
     fire.Fire()
+
+
+if __name__ == "__main__":
+    cli()

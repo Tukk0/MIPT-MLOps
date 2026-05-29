@@ -45,18 +45,21 @@ def preprocess_image(
     std: float = 0.3081,
     augment: bool = False,
     augment_noise: float = 0.05,
+    bgr: bool = True,
 ) -> torch.Tensor:
-    """Full preprocessing pipeline: resize → optional noise → normalise → tensor.
+    """Full preprocessing pipeline: resize -> optional noise -> normalise -> tensor.
 
     Parameters
     ----------
-    image : input BGR or grayscale Numpy array.
+    image : input BGR (if bgr=True) or grayscale Numpy array.
     target_size : desired (W, H).
     mean / std : MNIST normalisation constants.
     augment : add training-time augmentations.
+    bgr : if True (default), assumes BGR order; if False, assumes RGB.
     """
     if len(image.shape) == 3:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        code = cv2.COLOR_BGR2GRAY if bgr else cv2.COLOR_RGB2GRAY
+        image = cv2.cvtColor(image, code)
     image = resize_image(image, target_size=target_size)
     if augment:
         image = add_noise(image, noise_level=augment_noise)

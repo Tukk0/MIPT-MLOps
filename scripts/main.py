@@ -79,7 +79,7 @@ def _run_bot() -> None:
         elif text == "/help":
             bot.send_message(
                 message.chat.id,
-                "/help — show this message",
+                "/help -- show this message",
                 parse_mode="HTML",
             )
         else:
